@@ -8,8 +8,7 @@ import (
 
 // 入网连接
 type InBoundConn struct {
-	conn    net.Conn
-	backEnd BackEnd
+	conn net.Conn
 }
 
 func NewInBoundConn(in net.Conn) *InBoundConn {

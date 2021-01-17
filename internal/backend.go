@@ -23,7 +23,7 @@ func NewTcpBackEnd(upstreams []MachineNode) BackEnd {
 	for _, node := range upstreams {
 		// todo: 检查每个node的健康状态, 又不健康的直接退出
 		if !node.IsAlive() {
-			log.Fatalf("node is deaded")
+			log.Fatalf("node is deaded: %s", node.Info())
 			continue
 		}
 		tb.nodes = append(tb.nodes, node)
