@@ -39,11 +39,11 @@ func WithListenUdpAddr(addr string) Option {
 	}
 }
 
-func WithBackEnd(backEndType BType, name string, nodes []MachineNode) Option {
+func WithBackEnd(backEndType BType, name string, alg LoadBlanceAlg, nodes []MachineNode) Option {
 	return func(svc *TrafficServer) {
 		switch backEndType {
 		case TrafficTcpBackEnd:
-			svc.tcpBackEnd[name] = NewTcpBackEnd(nodes)
+			svc.tcpBackEnd[name] = NewTcpBackEnd(alg, nodes)
 		case TrafficUdpBackEnd:
 		default:
 		}

@@ -6,6 +6,14 @@ import (
 	log "github.com/LinkSyk/traffic/pkg/log"
 )
 
+type LBAlg int
+
+const (
+	LBRoundRoBin LBAlg = iota
+	LBAtLeast
+	LBIPHash
+)
+
 type BackEnd interface {
 	RegisterNode(node MachineNode) error
 	RegisterNodes(nodes []MachineNode) error
@@ -14,11 +22,13 @@ type BackEnd interface {
 
 type TcpBackEnd struct {
 	nodes []MachineNode
+	lb    LoadBlanceAlg
 }
 
-func NewTcpBackEnd(upstreams []MachineNode) BackEnd {
+func NewTcpBackEnd(lbAlg LoadBlanceAlg, upstreams []MachineNode) BackEnd {
 	tb := &TcpBackEnd{
 		nodes: make([]MachineNode, 0, len(upstreams)),
+		lb:    lbAlg,
 	}
 	for _, node := range upstreams {
 		// todo: 检查每个node的健康状态, 又不健康的直接退出

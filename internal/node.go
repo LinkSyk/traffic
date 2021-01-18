@@ -20,12 +20,14 @@ type MachineNode interface {
 }
 
 type TcpMachineNode struct {
-	addr string
+	addr   string
+	weight float32
 }
 
-func NewTcpNode(addr string) MachineNode {
+func NewTcpNode(addr string, weight float32) MachineNode {
 	return &TcpMachineNode{
-		addr: addr,
+		addr:   addr,
+		weight: weight,
 	}
 }
 
