@@ -13,6 +13,7 @@ var (
 )
 
 type NodeInfo struct {
+	Name     string
 	IP       string
 	Weight   float32
 	ConnSums uint32
@@ -24,21 +25,29 @@ func (n *NodeInfo) String() string {
 
 // 节点的抽象
 type MachineNode interface {
+	Name() string
 	Forward(in net.Conn) error
 	IsAlive() bool
 	Info() *NodeInfo
 }
 
 type TcpMachineNode struct {
-	addr   string
-	weight float32
+	name     string
+	addr     string
+	weight   float32
+	connSums uint32
 }
 
-func NewTcpNode(addr string, weight float32) MachineNode {
+func NewTcpNode(name string, addr string, weight float32) MachineNode {
 	return &TcpMachineNode{
+		name:   name,
 		addr:   addr,
 		weight: weight,
 	}
+}
+
+func (n *TcpMachineNode) Name() string {
+	return n.name
 }
 
 func (n *TcpMachineNode) IsAlive() bool {
@@ -81,5 +90,9 @@ func (n *TcpMachineNode) Forward(in net.Conn) error {
 }
 
 func (n *TcpMachineNode) Info() *NodeInfo {
-	return &NodeInfo{}
+	return &NodeInfo{
+		Name:     n.name,
+		IP:       n.addr,
+		ConnSums: n.connSums,
+	}
 }
