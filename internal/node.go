@@ -12,11 +12,21 @@ var (
 	tcpDialTimeOut    = 1 * time.Second
 )
 
+type NodeInfo struct {
+	IP       string
+	Weight   float32
+	ConnSums uint32
+}
+
+func (n *NodeInfo) String() string {
+	return fmt.Sprintf("ip: %s, weight: %f, connection num: %d", n.IP, n.Weight, n.ConnSums)
+}
+
 // 节点的抽象
 type MachineNode interface {
 	Forward(in net.Conn) error
 	IsAlive() bool
-	Info() string
+	Info() *NodeInfo
 }
 
 type TcpMachineNode struct {
@@ -70,6 +80,6 @@ func (n *TcpMachineNode) Forward(in net.Conn) error {
 	return nil
 }
 
-func (n *TcpMachineNode) Info() string {
-	return fmt.Sprintf("addr: %s", n.addr)
+func (n *TcpMachineNode) Info() *NodeInfo {
+	return &NodeInfo{}
 }
