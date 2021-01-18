@@ -1,6 +1,8 @@
 package internal
 
 import (
+	"sync/atomic"
+
 	log "github.com/LinkSyk/traffic/pkg/log"
 )
 
@@ -21,44 +23,72 @@ type BackEnd interface {
 }
 
 type TcpBackEnd struct {
-	nodes []MachineNode
+	nodes atomic.Value
 	lb    LoadBlanceAlg
 }
 
 func NewTcpBackEnd(lbAlg LoadBlanceAlg, upstreams []MachineNode) BackEnd {
 	tb := &TcpBackEnd{
-		nodes: make([]MachineNode, 0, len(upstreams)),
-		lb:    lbAlg,
+		lb: lbAlg,
 	}
+
+	nodes := make([]MachineNode, 0, len(upstreams))
 	for _, node := range upstreams {
 		// todo: 检查每个node的健康状态, 又不健康的直接退出
 		if !node.IsAlive() {
 			log.Fatalf("node is deaded: %s", node.Info().String())
 			continue
 		}
-		tb.nodes = append(tb.nodes, node)
+		nodes = append(nodes, node)
 	}
+
+	tb.nodes.Store(nodes)
 	return tb
 }
 
 func (t *TcpBackEnd) GetBestNode() MachineNode {
 	// 伪随机算法
-	// todo: 策略可随时替换, ip hash、最少连接等等
-	return t.lb.GetBestNode(t.nodes)
+	// done: 策略可随时替换, ip hash、最少连接等等
+	return t.lb.GetBestNode(t.nodes.Load().([]MachineNode))
 }
 
 func (t *TcpBackEnd) RegisterNode(node MachineNode) error {
-	panic("unimpl")
+	nodes := t.nodes.Load().([]MachineNode)
+	t.nodes.Store(append(nodes, node))
+	return nil
 }
 
 func (t *TcpBackEnd) RegisterNodes(nodes []MachineNode) error {
-	panic("unimpl")
+	ns := t.nodes.Load().([]MachineNode)
+	t.nodes.Store(append(ns, nodes...))
+	return nil
 }
 
 func (t *TcpBackEnd) RemoveNode(nodes MachineNode) {
-	panic("unimpl")
+	ns := t.nodes.Load().([]MachineNode)
+	newNodes := make([]MachineNode, 0, len(ns))
+	for _, n := range ns {
+		if nodes.Name() == n.Name() {
+			continue
+		}
+		newNodes = append(newNodes, n)
+	}
+	t.nodes.Store(newNodes)
 }
 
 func (t *TcpBackEnd) RemoveNodes(nodes []MachineNode) {
-	panic("unimpl")
+	ns := t.nodes.Load().([]MachineNode)
+	newNodes := make([]MachineNode, 0, len(ns))
+	m := make(map[string]struct{})
+	for _, v := range nodes {
+		m[v.Name()] = struct{}{}
+	}
+
+	for _, v := range ns {
+		if _, ok := m[v.Name()]; ok {
+			continue
+		}
+		newNodes = append(newNodes, v)
+	}
+	t.nodes.Store(newNodes)
 }
