@@ -6,12 +6,16 @@ import (
 )
 
 func main() {
+	nodes := []internal.MachineNode{
+		internal.NewTcpNode("node1", "127.0.0.1:7890", 1),
+		internal.NewTcpNode("node2", "127.0.0.1:7891", 1),
+	}
+	lg := internal.NewRoundRoBinAlg(nodes)
+	backEnd := internal.NewBackEnd(lg)
+
 	svr := internal.NewTrafficServer(
 		internal.WithListenTcpAddr("0.0.0.0:9999"),
-		internal.WithBackEnd(internal.TrafficTcpBackEnd, "default", internal.ChooseLoadBlance(internal.LBRoundRoBin), []internal.MachineNode{
-			internal.NewTcpNode("node1", "127.0.0.1:7890", 1),
-			// internal.NewTcpNode("127.0.0.1:8089"),
-		}),
+		internal.WithBackEnd(backEnd),
 	)
 
 	if err := svr.Run(); err != nil {

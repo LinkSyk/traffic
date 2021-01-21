@@ -19,10 +19,9 @@ const (
 
 // 代理服务
 type TrafficServer struct {
-	tcpAddr    string
-	udpAddr    string
-	tcpBackEnd map[string]BackEnd
-	udpBackEnd map[string]BackEnd
+	tcpAddr string
+	udpAddr string
+	backEnd BackEnd
 }
 
 type Option func(svr *TrafficServer)
@@ -39,22 +38,14 @@ func WithListenUdpAddr(addr string) Option {
 	}
 }
 
-func WithBackEnd(backEndType BType, name string, alg LoadBlanceAlg, nodes []MachineNode) Option {
+func WithBackEnd(backEnd BackEnd) Option {
 	return func(svc *TrafficServer) {
-		switch backEndType {
-		case TrafficTcpBackEnd:
-			svc.tcpBackEnd[name] = NewTcpBackEnd(alg, nodes)
-		case TrafficUdpBackEnd:
-		default:
-		}
+		svc.backEnd = backEnd
 	}
 }
 
 func NewTrafficServer(opts ...Option) TrafficServer {
-	ts := TrafficServer{
-		tcpBackEnd: make(map[string]BackEnd),
-		udpBackEnd: make(map[string]BackEnd),
-	}
+	ts := TrafficServer{}
 
 	for _, opt := range opts {
 		opt(&ts)
@@ -118,7 +109,7 @@ func (t *TrafficServer) RunTcpListener(ctx context.Context) error {
 			}
 
 			tc := NewInBoundConn(conn)
-			go tc.serve(t.tcpBackEnd["default"])
+			go tc.serve(t.backEnd)
 		}
 	}()
 	return nil
