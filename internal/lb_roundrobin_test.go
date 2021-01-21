@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func Test_LBRoundRobin(t *testing.T) {
+func Test_LBRoundRobin_GetBestNode(t *testing.T) {
 	nodes := []MachineNode{
 		NewTcpNode("node1", "127.0.0.1:7890", 1.0),
 		NewTcpNode("node2", "127.0.0.1:7890", 1.0),
@@ -15,17 +15,29 @@ func Test_LBRoundRobin(t *testing.T) {
 	}
 
 	roundRobinAlg := NewRoundRoBinAlg(nodes)
-	node1 := roundRobinAlg.GetBestNode()
+	node1, _ := roundRobinAlg.GetBestNode()
 	assert.Equal(t, nodes[0].Name(), node1.Name(), fmt.Sprintf("want: %s, got: %s", nodes[0].Name(), node1.Name()))
 
-	node2 := roundRobinAlg.GetBestNode()
+	node2, _ := roundRobinAlg.GetBestNode()
 	assert.Equal(t, nodes[1].Name(), node2.Name(), fmt.Sprintf("want: %s, got: %s", nodes[1].Name(), node2.Name()))
 
-	node3 := roundRobinAlg.GetBestNode()
+	node3, _ := roundRobinAlg.GetBestNode()
 	assert.Equal(t, nodes[2].Name(), node3.Name(), fmt.Sprintf("want: %s, got: %s", nodes[2].Name(), node3.Name()))
 
-	node4 := roundRobinAlg.GetBestNode()
+	node4, _ := roundRobinAlg.GetBestNode()
 	assert.Equal(t, nodes[0].Name(), node4.Name(), fmt.Sprintf("want: %s, got: %s", nodes[0].Name(), node4.Name()))
+}
+
+func Test_LBRoundRobin_AddNode(t *testing.T) {
+	nodes := []MachineNode{
+		NewTcpNode("node1", "127.0.0.1:7890", 1.0),
+	}
+	roundRobinAlg := NewRoundRoBinAlg(nodes)
+	roundRobinAlg.AddNode(NewTcpNode("node2", "127.0.0.1:7890", 1.0))
+	node1, _ := roundRobinAlg.GetBestNode()
+	assert.Equal(t, "node1", node1.Name(), fmt.Sprintf("want: %s, got: %s", "node1", node1.Name()))
+	node2, _ := roundRobinAlg.GetBestNode()
+	assert.Equal(t, "node2", node2.Name(), fmt.Sprintf("want: %s, got: %s", "node2", node2.Name()))
 }
 
 func Benchmark_LBRoundRobin(b *testing.B) {
@@ -51,6 +63,6 @@ func Benchmark_LBRoundRobin(b *testing.B) {
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_ = roundRobinAlg.GetBestNode()
+		roundRobinAlg.GetBestNode()
 	}
 }

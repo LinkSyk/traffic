@@ -7,4 +7,6 @@ var (
 
 	ErrRunning    = errors.New("running error")
 	ErrStopServer = errors.New("stop server")
+
+	ErrNoAvailableNode = errors.New("no available node")
 )

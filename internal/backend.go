@@ -24,5 +24,6 @@ func NewBackEnd(lbAlg LoadBlanceAlg) BackEnd {
 func (t *BackEnd) GetBestNode() MachineNode {
 	// 伪随机算法
 	// done: 策略可随时替换, ip hash、最少连接等等
-	return t.lb.GetBestNode()
+	node, _ := t.lb.GetBestNode()
+	return node
 }
