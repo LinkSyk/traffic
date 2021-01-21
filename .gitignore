@@ -276,5 +276,7 @@ dmypy.json
 .history
 .ionide
 
+cmd/test
+
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,go,python,jetbrains
 n
