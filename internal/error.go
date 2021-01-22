@@ -9,4 +9,6 @@ var (
 	ErrStopServer = errors.New("stop server")
 
 	ErrNoAvailableNode = errors.New("no available node")
+	ErrSocketRead      = errors.New("read socket error")
+	ErrSocketWrite     = errors.New("write socket error")
 )

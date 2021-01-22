@@ -2,38 +2,53 @@ package internal
 
 import (
 	"context"
+	"io"
 	"net"
-
-	log "github.com/LinkSyk/traffic/pkg/log"
 )
 
+type TrafficReadCloser interface {
+	io.ReadCloser
+}
+
+type TrafficWriteCloser interface {
+	io.WriteCloser
+}
+
 // 入网连接
-type InBoundConn struct {
-	conn net.Conn
+type InTcpConn struct {
+	conn *net.TCPConn
 	ctx  context.Context
 }
 
-func NewInBoundConn(in net.Conn) *InBoundConn {
-	return &InBoundConn{
+func NewInTCPConn(in *net.TCPConn) *InTcpConn {
+	return &InTcpConn{
 		conn: in,
 	}
 }
 
-func (c *InBoundConn) serve(ctx context.Context, backEnd BackEnd) {
-	node := backEnd.GetBestNode()
-	if err := node.Forward(ctx, c); err != nil {
-		log.Errorf("forward tcp data failed: %v", err)
-		return
-	}
+func (i *InTcpConn) Read(p []byte) (n int, err error) {
+	return i.conn.Read(p)
+}
+
+func (i *InTcpConn) Close() error {
+	return i.conn.Close()
 }
 
 // 出网连接
-type OutBoundConn struct {
-	conn net.Conn
+type OutTcpConn struct {
+	conn *net.TCPConn
 }
 
-func NewOutBoundConn(out net.Conn) *OutBoundConn {
-	return &OutBoundConn{
+func NewOutTCPConn(out *net.TCPConn) *OutTcpConn {
+	return &OutTcpConn{
 		conn: out,
 	}
+}
+
+func (o *OutTcpConn) Write(p []byte) (n int, err error) {
+	return o.Write(p)
+}
+
+func (o *OutTcpConn) Close() error {
+	return o.Close()
 }

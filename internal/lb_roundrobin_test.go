@@ -8,10 +8,10 @@ import (
 )
 
 func Test_LBRoundRobin_GetBestNode(t *testing.T) {
-	nodes := []MachineNode{
-		NewTcpNode("node1", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node2", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node3", "127.0.0.1:7890", 1.0),
+	nodes := []Node{
+		NewSimpleNode("node1", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node2", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node3", "127.0.0.1:7890", 1.0),
 	}
 
 	roundRobinAlg := NewRoundRoBinAlg(nodes)
@@ -29,11 +29,11 @@ func Test_LBRoundRobin_GetBestNode(t *testing.T) {
 }
 
 func Test_LBRoundRobin_AddNode(t *testing.T) {
-	nodes := []MachineNode{
-		NewTcpNode("node1", "127.0.0.1:7890", 1.0),
+	nodes := []Node{
+		NewSimpleNode("node1", "127.0.0.1:7890", 1.0),
 	}
 	roundRobinAlg := NewRoundRoBinAlg(nodes)
-	roundRobinAlg.AddNode(NewTcpNode("node2", "127.0.0.1:7890", 1.0))
+	roundRobinAlg.AddNode(NewSimpleNode("node2", "127.0.0.1:7890", 1.0))
 	node1, _ := roundRobinAlg.GetBestNode()
 	assert.Equal(t, "node1", node1.Name(), fmt.Sprintf("want: %s, got: %s", "node1", node1.Name()))
 	node2, _ := roundRobinAlg.GetBestNode()
@@ -41,23 +41,23 @@ func Test_LBRoundRobin_AddNode(t *testing.T) {
 }
 
 func Benchmark_LBRoundRobin(b *testing.B) {
-	nodes := []MachineNode{
-		NewTcpNode("node1", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node2", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node3", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node4", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node5", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node6", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node7", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node8", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node9", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node10", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node11", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node12", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node13", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node14", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node15", "127.0.0.1:7890", 1.0),
-		NewTcpNode("node16", "127.0.0.1:7890", 1.0),
+	nodes := []Node{
+		NewSimpleNode("node1", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node2", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node3", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node4", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node5", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node6", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node7", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node8", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node9", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node10", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node11", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node12", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node13", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node14", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node15", "127.0.0.1:7890", 1.0),
+		NewSimpleNode("node16", "127.0.0.1:7890", 1.0),
 	}
 	roundRobinAlg := NewRoundRoBinAlg(nodes)
 

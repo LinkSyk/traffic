@@ -2,12 +2,12 @@ package internal
 
 // 负载均衡器的接口
 type LoadBlanceAlg interface {
-	GetBestNode() (MachineNode, error)
-	AddNode(node MachineNode)
-	RemoveNode(node MachineNode)
+	GetBestNode() (Node, error)
+	AddNode(node Node)
+	RemoveNode(node Node)
 }
 
-func ChooseLoadBlance(alg LBAlg, nodes []MachineNode) LoadBlanceAlg {
+func ChooseLoadBlance(alg LBAlg, nodes []Node) LoadBlanceAlg {
 	switch alg {
 	case LBRoundRoBin:
 		return NewRoundRoBinAlg(nodes)

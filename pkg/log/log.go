@@ -33,3 +33,11 @@ func Warn(msg ...interface{}) {
 func Warnf(format string, args ...interface{}) {
 	log.Warnf(format, args...)
 }
+
+func Debug(msg ...interface{}) {
+	log.Debug(msg...)
+}
+
+func Debugf(format string, args ...interface{}) {
+	log.Debugf(format, args...)
+}

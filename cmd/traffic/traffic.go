@@ -1,14 +1,17 @@
 package main
 
 import (
+	"net/http"
+	_ "net/http/pprof"
+
 	"github.com/LinkSyk/traffic/internal"
 	"github.com/LinkSyk/traffic/pkg/log"
 )
 
 func main() {
-	nodes := []internal.MachineNode{
-		internal.NewTcpNode("node1", "127.0.0.1:7890", 1),
-		internal.NewTcpNode("node2", "127.0.0.1:7891", 1),
+	nodes := []internal.Node{
+		internal.NewSimpleNode("node1", "127.0.0.1:7890", 1),
+		// internal.NewSimpleNode("node2", "127.0.0.1:7891", 1),
 	}
 	lg := internal.NewRoundRoBinAlg(nodes)
 	backEnd := internal.NewBackEnd(lg)
@@ -18,7 +21,9 @@ func main() {
 		internal.WithBackEnd(backEnd),
 	)
 
-	if err := svr.Run(); err != nil {
+	go http.ListenAndServe("0.0.0.0:9991", nil)
+
+	if err := svr.Start(); err != nil {
 		log.Fatalf("run traffic failed: %v", err)
 	}
 }

@@ -3,18 +3,18 @@ package internal
 type IPHashAlg struct {
 }
 
-func NewIPHashAlg(nodes []MachineNode) LoadBlanceAlg {
+func NewIPHashAlg(nodes []Node) LoadBlanceAlg {
 	return &IPHashAlg{}
 }
 
-func (lg *IPHashAlg) GetBestNode() (MachineNode, error) {
+func (lg *IPHashAlg) GetBestNode() (Node, error) {
 	panic("unimpl")
 }
 
-func (lg *IPHashAlg) AddNode(node MachineNode) {
+func (lg *IPHashAlg) AddNode(node Node) {
 	panic("unimpl")
 }
 
-func (lg *IPHashAlg) RemoveNode(node MachineNode) {
+func (lg *IPHashAlg) RemoveNode(node Node) {
 	panic("unimpl")
 }

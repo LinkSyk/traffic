@@ -3,7 +3,6 @@ package internal
 import (
 	"context"
 	"fmt"
-	"io"
 	"net"
 	"time"
 
@@ -28,33 +27,34 @@ func (n *NodeInfo) String() string {
 }
 
 // 节点的抽象
-type MachineNode interface {
+type Node interface {
 	Name() string
-	Forward(ctx context.Context, in *InBoundConn) error
+	Forward(reader TrafficReadCloser, writer TrafficWriteCloser) error
+	GetBestWriter() (TrafficWriteCloser, error)
 	IsAlive() bool
 	Info() *NodeInfo
 }
 
-type TcpMachineNode struct {
+type SimpleNode struct {
 	name     string
 	addr     string
 	weight   float32
 	connSums uint32
 }
 
-func NewTcpNode(name string, addr string, weight float32) MachineNode {
-	return &TcpMachineNode{
+func NewSimpleNode(name string, addr string, weight float32) Node {
+	return &SimpleNode{
 		name:   name,
 		addr:   addr,
 		weight: weight,
 	}
 }
 
-func (n *TcpMachineNode) Name() string {
+func (n *SimpleNode) Name() string {
 	return n.name
 }
 
-func (n *TcpMachineNode) IsAlive() bool {
+func (n *SimpleNode) IsAlive() bool {
 	c, err := net.DialTimeout("tcp", n.addr, tcpPreDialTimeOut)
 	if err != nil {
 		return false
@@ -63,7 +63,7 @@ func (n *TcpMachineNode) IsAlive() bool {
 	return true
 }
 
-func (n *TcpMachineNode) Forward(ctx context.Context, in *InBoundConn) error {
+func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser) error {
 	// 新建连接，后续换成从连接池拿数据
 	// fixme: 修复连接泄漏的地方
 	out, err := net.DialTimeout("tcp", n.addr, tcpDialTimeOut)
@@ -71,12 +71,20 @@ func (n *TcpMachineNode) Forward(ctx context.Context, in *InBoundConn) error {
 		return err
 	}
 
-	g, ctx := errgroup.WithContext(ctx)
+	closeConn := func() {
+		reader.Close()
+		writer.Close()
+	}
 
+	ioBuffer := make([]byte, 10240)
+	oiBuffer := make([]byte, 10240)
+	info := n.Info().String()
+	g, ctx := errgroup.WithContext(context.Background())
+
+	// close connection
 	g.Go(func() error {
 		<-ctx.Done()
-		in.conn.Close()
-		out.Close()
+		closeConn()
 		return nil
 	})
 
@@ -85,15 +93,22 @@ func (n *TcpMachineNode) Forward(ctx context.Context, in *InBoundConn) error {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info(fmt.Sprintf("%s: in -> out stop serve", n.Info().String()))
 				return ErrStopServer
 			default:
-				_, err := io.Copy(out, in.conn)
+				cnt, err := reader.Read(ioBuffer)
 				if err != nil {
-					log.Error(fmt.Sprintf("%s: in -> out forward data failed: %v", n.Info().String(), err))
-					return err
-				}
+					log.Error(fmt.Sprintf("%s: in -> out read data failed: %v", info, err))
+					return ErrSocketRead
 
+				}
+				log.Info(fmt.Sprintf("%s: in -> out read %d bytes data", info, cnt))
+
+				cnt, err = out.Write(ioBuffer[:cnt])
+				if err != nil {
+					log.Error(fmt.Sprintf("%s: in -> out write data failed: %v", info, err))
+					return ErrSocketWrite
+				}
+				log.Info(fmt.Sprintf("%s: in -> out write %d bytes data", info, cnt))
 			}
 		}
 	})
@@ -103,25 +118,43 @@ func (n *TcpMachineNode) Forward(ctx context.Context, in *InBoundConn) error {
 		for {
 			select {
 			case <-ctx.Done():
-				log.Info(fmt.Sprintf("%s: out -> in stop serve", n.Info().String()))
 				return ErrStopServer
 			default:
-				_, err := io.Copy(in.conn, out)
+				cnt, err := reader.Read(oiBuffer)
 				if err != nil {
-					log.Error(fmt.Sprintf("%s: out -> in forward data failed: %v", n.Info().String(), err))
-					return err
+					log.Error(fmt.Sprintf("%s: out -> in read data failed: %v", n.Info().String(), err))
+					return ErrSocketRead
 				}
+				log.Info(fmt.Sprintf("%s: in -> out read %d bytes data", info, cnt))
+
+				cnt, err = writer.Write(oiBuffer[:cnt])
+				if err != nil {
+					log.Error(fmt.Sprintf("%s: out -> in write data failed: %v", n.Info().String(), err))
+					return ErrSocketWrite
+				}
+				log.Info(fmt.Sprintf("%s: in -> out write %d bytes data", info, cnt))
 			}
 		}
 	})
 
-	return g.Wait()
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	return nil
 }
 
-func (n *TcpMachineNode) Info() *NodeInfo {
+func (n *SimpleNode) Info() *NodeInfo {
 	return &NodeInfo{
 		Name:     n.name,
 		IP:       n.addr,
 		ConnSums: n.connSums,
 	}
+}
+
+func (n *SimpleNode) GetOutConn() *OutTcpConn {
+	return nil
+}
+
+func (n *SimpleNode) GetBestWriter() (TrafficWriteCloser, error) {
+	return nil, nil
 }

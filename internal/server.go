@@ -2,10 +2,8 @@ package internal
 
 import (
 	"context"
-	"net"
 	"os"
 	"os/signal"
-	"sync"
 
 	log "github.com/LinkSyk/traffic/pkg/log"
 	"golang.org/x/sync/errgroup"
@@ -19,34 +17,30 @@ const (
 )
 
 // 代理服务
-type TrafficServer struct {
-	tcpAddr string
-	udpAddr string
-	backEnd BackEnd
+type Traffic struct {
+	tcpAddr      string
+	udpAddr      string
+	lb           LoadBlanceAlg
+	tcpListeners map[string]*TcpListener
+	cfg          *TrafficConfig
 }
 
-type Option func(svr *TrafficServer)
+type Option func(svr *Traffic)
 
 func WithListenTcpAddr(addr string) Option {
-	return func(svc *TrafficServer) {
+	return func(svc *Traffic) {
 		svc.tcpAddr = addr
 	}
 }
 
 func WithListenUdpAddr(addr string) Option {
-	return func(svc *TrafficServer) {
+	return func(svc *Traffic) {
 		svc.udpAddr = addr
 	}
 }
 
-func WithBackEnd(backEnd BackEnd) Option {
-	return func(svc *TrafficServer) {
-		svc.backEnd = backEnd
-	}
-}
-
-func NewTrafficServer(opts ...Option) TrafficServer {
-	ts := TrafficServer{}
+func NewTrafficServer(opts ...Option) Traffic {
+	ts := Traffic{}
 
 	for _, opt := range opts {
 		opt(&ts)
@@ -55,7 +49,7 @@ func NewTrafficServer(opts ...Option) TrafficServer {
 	return ts
 }
 
-func (t *TrafficServer) Run() error {
+func (t *Traffic) Start() error {
 	g, ctx := errgroup.WithContext(context.Background())
 
 	// 注册信号
@@ -85,37 +79,12 @@ func (t *TrafficServer) Run() error {
 	return nil
 }
 
-func (t *TrafficServer) RunTcpListener(ctx context.Context) error {
-
-	l, err := net.Listen("tcp", t.tcpAddr)
-	if err != nil {
-		return err
-	}
-
-	// 用来关闭监听服务的
-	go func() {
-		<-ctx.Done()
-		log.Info("stop tcp server")
-		l.Close()
-	}()
-
-	log.Infof("start run tcp traffic in %s", t.tcpAddr)
-	tcpListener := l.(*net.TCPListener)
-	var wg sync.WaitGroup
-	for {
-		conn, err := tcpListener.AcceptTCP()
-		log.Info("accept tcp connection")
-		if err != nil {
-			log.Errorf("tcpListener accept connection failed: %v", err)
-			wg.Wait()
+func (t *Traffic) RunTcpListener(ctx context.Context) error {
+	for name, l := range t.tcpListeners {
+		if err := l.Listen(); err != nil {
+			log.Fatalf("run %s tcp listener failed: %v", name, err)
 			return err
 		}
-
-		tc := NewInBoundConn(conn)
-		wg.Add(1)
-		go func() {
-			tc.serve(ctx, t.backEnd)
-			wg.Done()
-		}()
 	}
+	return nil
 }

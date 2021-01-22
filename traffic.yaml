@@ -1,0 +1,22 @@
+traffic:
+  tcpUpstream:                  # tcp的负载均衡
+    lbAlg: round-robin          # 负载均衡算法
+    name: tcp-upstream1         # upstream名称，确保唯一
+    listen: 127.0.0.1:8080      # 监听地址
+    upstream:
+      - name: tcp-node1         # 节点名称
+        addr: 127.0.0.1:7890    # 节点地址
+        weight: 1.0             # 权重
+      - name: tcp-node2
+        addr: 127.0.0.1:7891
+        weight: 1.0
+  udpUpstream:                  # udp的负载均衡
+    name: udp-upstream1
+    lbAlg: round-robin
+    upstream:
+      - name: udp-node1
+        addr: 127.0.0.1:7890
+        weight: 1.0
+      - name: udp-node2
+        addr: 127.0.0.1:7891
+        weight: 1.0

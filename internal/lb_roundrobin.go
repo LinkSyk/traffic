@@ -10,9 +10,9 @@ type RoundRoBinAlg struct {
 	upstreams atomic.Value
 }
 
-func NewRoundRoBinAlg(upstreams []MachineNode) LoadBlanceAlg {
+func NewRoundRoBinAlg(upstreams []Node) LoadBlanceAlg {
 	rr := &RoundRoBinAlg{}
-	nodes := make([]MachineNode, 0, len(upstreams))
+	nodes := make([]Node, 0, len(upstreams))
 	for _, node := range upstreams {
 		// todo: 检查每个node的健康状态, 又不健康的直接退出
 		if !node.IsAlive() {
@@ -26,8 +26,8 @@ func NewRoundRoBinAlg(upstreams []MachineNode) LoadBlanceAlg {
 	return rr
 }
 
-func (lg *RoundRoBinAlg) GetBestNode() (MachineNode, error) {
-	nodes := lg.upstreams.Load().([]MachineNode)
+func (lg *RoundRoBinAlg) GetBestNode() (Node, error) {
+	nodes := lg.upstreams.Load().([]Node)
 	defer func() {
 		// atomic.StoreInt32(&lg.idx, (lg.idx+1)%int32(len(nodes)))
 		lg.idx = (lg.idx + 1) % int32(len(nodes))
@@ -44,15 +44,15 @@ func (lg *RoundRoBinAlg) GetBestNode() (MachineNode, error) {
 	return nodes[int(lg.idx)], nil
 }
 
-func (lg *RoundRoBinAlg) AddNode(node MachineNode) {
-	nodes := lg.upstreams.Load().([]MachineNode)
+func (lg *RoundRoBinAlg) AddNode(node Node) {
+	nodes := lg.upstreams.Load().([]Node)
 	nodes = append(nodes, node)
 	lg.upstreams.Store(nodes)
 }
 
-func (lg *RoundRoBinAlg) RemoveNode(node MachineNode) {
-	nodes := lg.upstreams.Load().([]MachineNode)
-	newNodes := make([]MachineNode, 0, len(nodes))
+func (lg *RoundRoBinAlg) RemoveNode(node Node) {
+	nodes := lg.upstreams.Load().([]Node)
+	newNodes := make([]Node, 0, len(nodes))
 	for _, n := range nodes {
 		if node.Name() == n.Name() {
 			continue
