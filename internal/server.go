@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"sync"
 
 	log "github.com/LinkSyk/traffic/pkg/log"
 	"golang.org/x/sync/errgroup"
@@ -99,18 +100,22 @@ func (t *TrafficServer) RunTcpListener(ctx context.Context) error {
 	}()
 
 	log.Infof("start run tcp traffic in %s", t.tcpAddr)
-	go func() {
-		tcpListener := l.(*net.TCPListener)
-		for {
-			conn, err := tcpListener.AcceptTCP()
-			log.Info("accept tcp connection")
-			if err != nil {
-				log.Errorf("tcpListener accept connection failed: %d", err)
-			}
-
-			tc := NewInBoundConn(conn)
-			go tc.serve(t.backEnd)
+	tcpListener := l.(*net.TCPListener)
+	var wg sync.WaitGroup
+	for {
+		conn, err := tcpListener.AcceptTCP()
+		log.Info("accept tcp connection")
+		if err != nil {
+			log.Errorf("tcpListener accept connection failed: %v", err)
+			wg.Wait()
+			return err
 		}
-	}()
-	return nil
+
+		tc := NewInBoundConn(conn)
+		wg.Add(1)
+		go func() {
+			tc.serve(ctx, t.backEnd)
+			wg.Done()
+		}()
+	}
 }

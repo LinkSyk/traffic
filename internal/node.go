@@ -1,10 +1,14 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
 	"time"
+
+	log "github.com/LinkSyk/traffic/pkg/log"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -26,7 +30,7 @@ func (n *NodeInfo) String() string {
 // 节点的抽象
 type MachineNode interface {
 	Name() string
-	Forward(in net.Conn) error
+	Forward(ctx context.Context, in *InBoundConn) error
 	IsAlive() bool
 	Info() *NodeInfo
 }
@@ -59,7 +63,7 @@ func (n *TcpMachineNode) IsAlive() bool {
 	return true
 }
 
-func (n *TcpMachineNode) Forward(in net.Conn) error {
+func (n *TcpMachineNode) Forward(ctx context.Context, in *InBoundConn) error {
 	// 新建连接，后续换成从连接池拿数据
 	// fixme: 修复连接泄漏的地方
 	out, err := net.DialTimeout("tcp", n.addr, tcpDialTimeOut)
@@ -67,26 +71,51 @@ func (n *TcpMachineNode) Forward(in net.Conn) error {
 		return err
 	}
 
+	g, ctx := errgroup.WithContext(ctx)
+
+	g.Go(func() error {
+		<-ctx.Done()
+		in.conn.Close()
+		out.Close()
+		return nil
+	})
+
 	// in -> out
-	go func() {
+	g.Go(func() error {
 		for {
-			_, err := io.Copy(out, in)
-			if err != nil {
-				return
+			select {
+			case <-ctx.Done():
+				log.Info(fmt.Sprintf("%s: in -> out stop serve", n.Info().String()))
+				return ErrStopServer
+			default:
+				_, err := io.Copy(out, in.conn)
+				if err != nil {
+					log.Error(fmt.Sprintf("%s: in -> out forward data failed: %v", n.Info().String(), err))
+					return err
+				}
+
 			}
 		}
-	}()
+	})
 
 	// out -> in
-	go func() {
+	g.Go(func() error {
 		for {
-			_, err := io.Copy(in, out)
-			if err != nil {
-				return
+			select {
+			case <-ctx.Done():
+				log.Info(fmt.Sprintf("%s: out -> in stop serve", n.Info().String()))
+				return ErrStopServer
+			default:
+				_, err := io.Copy(in.conn, out)
+				if err != nil {
+					log.Error(fmt.Sprintf("%s: out -> in forward data failed: %v", n.Info().String(), err))
+					return err
+				}
 			}
 		}
-	}()
-	return nil
+	})
+
+	return g.Wait()
 }
 
 func (n *TcpMachineNode) Info() *NodeInfo {

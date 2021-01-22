@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"net"
 
 	log "github.com/LinkSyk/traffic/pkg/log"
@@ -9,6 +10,7 @@ import (
 // 入网连接
 type InBoundConn struct {
 	conn net.Conn
+	ctx  context.Context
 }
 
 func NewInBoundConn(in net.Conn) *InBoundConn {
@@ -17,9 +19,9 @@ func NewInBoundConn(in net.Conn) *InBoundConn {
 	}
 }
 
-func (c *InBoundConn) serve(backEnd BackEnd) {
+func (c *InBoundConn) serve(ctx context.Context, backEnd BackEnd) {
 	node := backEnd.GetBestNode()
-	if err := node.Forward(c.conn); err != nil {
+	if err := node.Forward(ctx, c); err != nil {
 		log.Errorf("forward tcp data failed: %v", err)
 		return
 	}
