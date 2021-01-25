@@ -7,15 +7,15 @@ type LoadBlanceAlg interface {
 	RemoveNode(node Node)
 }
 
-func ChooseLoadBlance(alg LBAlg, nodes []Node) LoadBlanceAlg {
-	switch alg {
-	case LBRoundRoBin:
-		return NewRoundRoBinAlg(nodes)
-	case LBIPHash:
-		return NewIPHashAlg(nodes)
-	case LBAtLeast:
-		return NewAtLeastAlg(nodes)
-	default:
-		return NewRoundRoBinAlg(nodes)
-	}
-}
+// func ChooseLoadBlance(alg LBAlg, nodes []Node) LoadBlanceAlg {
+// 	switch alg {
+// 	case LBRoundRoBin:
+// 		return NewRoundRoBinAlg(nodes)
+// 	case LBIPHash:
+// 		return NewIPHashAlg(nodes)
+// 	case LBAtLeast:
+// 		return NewAtLeastAlg(nodes)
+// 	default:
+// 		return NewRoundRoBinAlg(nodes)
+// 	}
+// }

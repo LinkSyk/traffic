@@ -1,9 +1,11 @@
 package internal
 
 import (
-	log "github.com/LinkSyk/traffic/pkg/log"
+	"context"
 	"net"
 	"sync"
+
+	log "github.com/LinkSyk/traffic/pkg/log"
 )
 
 type TcpListener struct {
@@ -21,7 +23,7 @@ func NewTcpListener(cfg *TcpListenerConfig) *TcpListener {
 	return tl
 }
 
-func (t *TcpListener) Listen() error {
+func (t *TcpListener) Listen(ctx context.Context) error {
 	l, err := net.Listen("tcp", t.cfg.Listen)
 	if err != nil {
 		return err
@@ -33,7 +35,7 @@ func (t *TcpListener) Listen() error {
 		l.Close()
 	}()
 
-	log.Infof("start run tcp traffic in %s", t.cfg.Listen)
+	log.Debugf("start run tcp traffic in %s", t.cfg.Listen)
 	tcpListener := l.(*net.TCPListener)
 	var wg sync.WaitGroup
 	for {
@@ -44,7 +46,12 @@ func (t *TcpListener) Listen() error {
 			wg.Wait()
 			return err
 		}
-		go t.serve(conn)
+
+		wg.Add(1)
+		go func() {
+			t.serve(conn)
+			wg.Done()
+		}()
 	}
 }
 

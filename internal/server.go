@@ -18,28 +18,20 @@ const (
 
 // 代理服务
 type Traffic struct {
-	tcpAddr      string
-	udpAddr      string
-	lb           LoadBlanceAlg
+	// lb           LoadBlanceAlg
 	tcpListeners map[string]*TcpListener
-	cfg          *TrafficConfig
+	// cfg          *TrafficConfig
 }
 
 type Option func(svr *Traffic)
 
-func WithListenTcpAddr(addr string) Option {
+func withListenTcpAddr(name string, l *TcpListener) Option {
 	return func(svc *Traffic) {
-		svc.tcpAddr = addr
+		svc.tcpListeners[name] = l
 	}
 }
 
-func WithListenUdpAddr(addr string) Option {
-	return func(svc *Traffic) {
-		svc.udpAddr = addr
-	}
-}
-
-func NewTrafficServer(opts ...Option) Traffic {
+func newTrafficServer(opts ...Option) Traffic {
 	ts := Traffic{}
 
 	for _, opt := range opts {
@@ -79,12 +71,16 @@ func (t *Traffic) Start() error {
 	return nil
 }
 
-func (t *Traffic) RunTcpListener(ctx context.Context) error {
+func (t *Traffic) runTcpListener(ctx context.Context) error {
 	for name, l := range t.tcpListeners {
-		if err := l.Listen(); err != nil {
+		if err := l.Listen(ctx); err != nil {
 			log.Fatalf("run %s tcp listener failed: %v", name, err)
 			return err
 		}
 	}
 	return nil
+}
+
+func BuildServer(cfg *TrafficConfig) (Traffic, error) {
+	panic("unimpl")
 }

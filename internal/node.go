@@ -76,8 +76,9 @@ func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser
 		writer.Close()
 	}
 
-	ioBuffer := make([]byte, 10240)
-	oiBuffer := make([]byte, 10240)
+	// tcp的发送窗口大小一般在2^16，大约是64K buffer，tcp首部中的option可以扩充这个值，可以扩大到2^31
+	ioBuffer := make([]byte, 0xffff)
+	oiBuffer := make([]byte, 0xffff)
 	info := n.Info().String()
 	g, ctx := errgroup.WithContext(context.Background())
 
@@ -97,18 +98,18 @@ func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser
 			default:
 				cnt, err := reader.Read(ioBuffer)
 				if err != nil {
-					log.Error(fmt.Sprintf("%s: in -> out read data failed: %v", info, err))
+					log.Errorf("%s: in -> out read data failed: %v", info, err)
 					return ErrSocketRead
 
 				}
-				log.Info(fmt.Sprintf("%s: in -> out read %d bytes data", info, cnt))
+				log.Debugf("%s: in -> out read %d bytes data", info, cnt)
 
 				cnt, err = out.Write(ioBuffer[:cnt])
 				if err != nil {
-					log.Error(fmt.Sprintf("%s: in -> out write data failed: %v", info, err))
+					log.Errorf("%s: in -> out write data failed: %v", info, err)
 					return ErrSocketWrite
 				}
-				log.Info(fmt.Sprintf("%s: in -> out write %d bytes data", info, cnt))
+				log.Infof("%s: in -> out write %d bytes data", info, cnt)
 			}
 		}
 	})
@@ -122,17 +123,17 @@ func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser
 			default:
 				cnt, err := reader.Read(oiBuffer)
 				if err != nil {
-					log.Error(fmt.Sprintf("%s: out -> in read data failed: %v", n.Info().String(), err))
+					log.Errorf("%s: out -> in read data failed: %v", info, err)
 					return ErrSocketRead
 				}
-				log.Info(fmt.Sprintf("%s: in -> out read %d bytes data", info, cnt))
+				log.Infof("%s: in -> out read %d bytes data", info, cnt)
 
 				cnt, err = writer.Write(oiBuffer[:cnt])
 				if err != nil {
-					log.Error(fmt.Sprintf("%s: out -> in write data failed: %v", n.Info().String(), err))
+					log.Errorf("%s: out -> in write data failed: %v", info, err)
 					return ErrSocketWrite
 				}
-				log.Info(fmt.Sprintf("%s: in -> out write %d bytes data", info, cnt))
+				log.Infof("%s: in -> out write %d bytes data", info, cnt)
 			}
 		}
 	})
