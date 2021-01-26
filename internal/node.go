@@ -11,8 +11,8 @@ import (
 )
 
 var (
-	tcpPreDialTimeOut = 2 * time.Second
-	tcpDialTimeOut    = 1 * time.Second
+	tcpPreDialTimeOut = 3 * time.Second
+	tcpDialTimeOut    = 3 * time.Second
 )
 
 type NodeInfo struct {
@@ -64,13 +64,6 @@ func (n *SimpleNode) IsAlive() bool {
 }
 
 func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser) error {
-	// 新建连接，后续换成从连接池拿数据
-	// fixme: 修复连接泄漏的地方
-	out, err := net.DialTimeout("tcp", n.addr, tcpDialTimeOut)
-	if err != nil {
-		return err
-	}
-
 	closeConn := func() {
 		reader.Close()
 		writer.Close()
@@ -104,7 +97,7 @@ func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser
 				}
 				log.Debugf("%s: in -> out read %d bytes data", info, cnt)
 
-				cnt, err = out.Write(ioBuffer[:cnt])
+				cnt, err = writer.Write(ioBuffer[:cnt])
 				if err != nil {
 					log.Errorf("%s: in -> out write data failed: %v", info, err)
 					return ErrSocketWrite
@@ -152,10 +145,6 @@ func (n *SimpleNode) Info() *NodeInfo {
 	}
 }
 
-func (n *SimpleNode) GetOutConn() *OutTcpConn {
-	return nil
-}
-
 func (n *SimpleNode) GetBestWriter() (TrafficWriteCloser, error) {
-	return nil, nil
+	return net.DialTimeout("tcp", n.addr, tcpDialTimeOut)
 }

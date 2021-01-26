@@ -11,4 +11,6 @@ var (
 	ErrNoAvailableNode = errors.New("no available node")
 	ErrSocketRead      = errors.New("read socket error")
 	ErrSocketWrite     = errors.New("write socket error")
+
+	ErrServerNotReady = errors.New("server is not ready")
 )

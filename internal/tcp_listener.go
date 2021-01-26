@@ -9,15 +9,23 @@ import (
 )
 
 type TcpListener struct {
-	cfg  *TcpListenerConfig
-	lb   LoadBlanceAlg
-	stop chan struct{}
+	cfg         *TcpListenerConfig
+	loadbalance LoadBlanceAlg
+	stop        chan struct{}
 }
 
 func NewTcpListener(cfg *TcpListenerConfig) *TcpListener {
+	nodes := make([]Node, 0, len(cfg.Nodes))
+	for i, n := range cfg.Nodes {
+		nodes[i] = NewSimpleNode(n.Name, n.Name, float32(n.Weight))
+	}
+
+	lb := NewRoundRoBinAlg(nodes)
+
 	tl := &TcpListener{
-		cfg:  cfg,
-		stop: make(chan struct{}),
+		cfg:         cfg,
+		stop:        make(chan struct{}),
+		loadbalance: lb,
 	}
 
 	return tl
@@ -66,7 +74,7 @@ func (t *TcpListener) Stop() {
 
 func (t *TcpListener) serve(conn *net.TCPConn) {
 	reader := NewInTCPConn(conn)
-	node, err := t.lb.GetBestNode()
+	node, err := t.loadbalance.GetBestNode()
 	if err != nil {
 		log.Infof("tcpListener get best node failed: %v", err)
 		return

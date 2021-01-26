@@ -20,7 +20,7 @@ const (
 type Traffic struct {
 	// lb           LoadBlanceAlg
 	tcpListeners map[string]*TcpListener
-	// cfg          *TrafficConfig
+	readyStatus  bool
 }
 
 type Option func(svr *Traffic)
@@ -42,6 +42,10 @@ func newTrafficServer(opts ...Option) Traffic {
 }
 
 func (t *Traffic) Start() error {
+	if !t.readyStatus {
+		return ErrServerNotReady
+	}
+
 	g, ctx := errgroup.WithContext(context.Background())
 
 	// 注册信号
@@ -49,7 +53,7 @@ func (t *Traffic) Start() error {
 	signal.Notify(ch, os.Interrupt)
 
 	g.Go(func() error {
-		if err := t.RunTcpListener(ctx); err != nil {
+		if err := t.runTcpListener(ctx); err != nil {
 			return err
 		}
 		return nil
@@ -81,6 +85,13 @@ func (t *Traffic) runTcpListener(ctx context.Context) error {
 	return nil
 }
 
-func BuildServer(cfg *TrafficConfig) (Traffic, error) {
-	panic("unimpl")
+func BuildTraffic(cfg *TrafficConfig) (Traffic, error) {
+	t := Traffic{}
+	for _, tcpUp := range cfg.TcpUpstreams {
+		t.tcpListeners[tcpUp.Name] = NewTcpListener(tcpUp)
+	}
+
+	t.readyStatus = true
+
+	return t, nil
 }
