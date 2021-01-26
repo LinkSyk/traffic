@@ -86,7 +86,9 @@ func (t *Traffic) runTcpListener(ctx context.Context) error {
 }
 
 func BuildTraffic(cfg *TrafficConfig) (Traffic, error) {
-	t := Traffic{}
+	t := Traffic{
+		tcpListeners: map[string]*TcpListener{},
+	}
 	for _, tcpUp := range cfg.TcpUpstreams {
 		t.tcpListeners[tcpUp.Name] = NewTcpListener(tcpUp)
 	}

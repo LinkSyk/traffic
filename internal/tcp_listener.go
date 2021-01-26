@@ -15,9 +15,9 @@ type TcpListener struct {
 }
 
 func NewTcpListener(cfg *TcpListenerConfig) *TcpListener {
-	nodes := make([]Node, 0, len(cfg.Nodes))
+	nodes := make([]Node, len(cfg.Nodes))
 	for i, n := range cfg.Nodes {
-		nodes[i] = NewSimpleNode(n.Name, n.Name, float32(n.Weight))
+		nodes[i] = NewSimpleNode(n.Name, n.Addr, float32(n.Weight))
 	}
 
 	lb := NewRoundRoBinAlg(nodes)
@@ -39,6 +39,7 @@ func (t *TcpListener) Listen(ctx context.Context) error {
 
 	// 用来关闭监听服务的
 	go func() {
+		<-ctx.Done()
 		log.Info("stop tcp server")
 		l.Close()
 	}()
@@ -57,7 +58,7 @@ func (t *TcpListener) Listen(ctx context.Context) error {
 
 		wg.Add(1)
 		go func() {
-			t.serve(conn)
+			t.serve(ctx, conn)
 			wg.Done()
 		}()
 	}
@@ -72,7 +73,7 @@ func (t *TcpListener) Stop() {
 
 }
 
-func (t *TcpListener) serve(conn *net.TCPConn) {
+func (t *TcpListener) serve(ctx context.Context, conn *net.TCPConn) {
 	reader := NewInTCPConn(conn)
 	node, err := t.loadbalance.GetBestNode()
 	if err != nil {
@@ -80,12 +81,12 @@ func (t *TcpListener) serve(conn *net.TCPConn) {
 		return
 	}
 
-	writer, err := node.GetBestWriter()
+	writer, err := node.GetBestRW()
 	if err != nil {
 		log.Infof("tcpListener get best writer failed: %v", err)
 	}
 
-	if err := node.Forward(reader, writer); err != nil {
+	if err := node.Forward(ctx, reader, writer); err != nil {
 		log.Infof("tcpListener node forward failed: %v", err)
 	}
 

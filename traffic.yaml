@@ -6,6 +6,3 @@ tcpUpstreams:                  # tcp的负载均衡
       - name: tcp-node1         # 节点名称
         addr: 127.0.0.1:7890    # 节点地址
         weight: 1.0             # 权重
-      - name: tcp-node2
-        addr: 127.0.0.1:7891
-        weight: 1.0

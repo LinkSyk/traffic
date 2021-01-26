@@ -2,24 +2,29 @@ package main
 
 import (
 	_ "net/http/pprof"
+	"os"
+
+	"github.com/LinkSyk/traffic/internal"
+	log "github.com/LinkSyk/traffic/pkg/log"
 )
 
 func main() {
-	// nodes := []internal.Node{
-	// 	internal.NewSimpleNode("node1", "127.0.0.1:7890", 1),
-	// 	// internal.NewSimpleNode("node2", "127.0.0.1:7891", 1),
-	// }
-	// lg := internal.NewRoundRoBinAlg(nodes)
-	// backEnd := internal.NewBackEnd(lg)
+	f, err := os.Open("./traffic.yaml")
+	if err != nil {
+		log.Fatalf("open config file failed: %v", err)
+	}
 
-	// svr := internal.NewTrafficServer(
-	// 	internal.WithListenTcpAddr("0.0.0.0:9999"),
-	// 	internal.WithBackEnd(backEnd),
-	// )
+	cfg, err := internal.ParserConfig(f)
+	if err != nil {
+		log.Fatalf("parser config file failed: %v", err)
+	}
 
-	// go http.ListenAndServe("0.0.0.0:9991", nil)
+	traffic, err := internal.BuildTraffic(cfg)
+	if err != nil {
+		log.Fatalf("build traffic failed: %v", err)
+	}
 
-	// if err := svr.Start(); err != nil {
-	// 	log.Fatalf("run traffic failed: %v", err)
-	// }
+	if err := traffic.Start(); err != nil {
+		log.Fatalf("start traffic failed: %v", err)
+	}
 }

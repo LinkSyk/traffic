@@ -29,8 +29,8 @@ func (n *NodeInfo) String() string {
 // 节点的抽象
 type Node interface {
 	Name() string
-	Forward(reader TrafficReadCloser, writer TrafficWriteCloser) error
-	GetBestWriter() (TrafficWriteCloser, error)
+	Forward(ctx context.Context, reader TrafficRW, writer TrafficRW) error
+	GetBestRW() (TrafficRW, error)
 	IsAlive() bool
 	Info() *NodeInfo
 }
@@ -63,7 +63,7 @@ func (n *SimpleNode) IsAlive() bool {
 	return true
 }
 
-func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser) error {
+func (n *SimpleNode) Forward(ctx context.Context, reader TrafficRW, writer TrafficRW) error {
 	closeConn := func() {
 		reader.Close()
 		writer.Close()
@@ -73,7 +73,7 @@ func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser
 	ioBuffer := make([]byte, 0xffff)
 	oiBuffer := make([]byte, 0xffff)
 	info := n.Info().String()
-	g, ctx := errgroup.WithContext(context.Background())
+	g, ctx := errgroup.WithContext(ctx)
 
 	// close connection
 	g.Go(func() error {
@@ -91,18 +91,18 @@ func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser
 			default:
 				cnt, err := reader.Read(ioBuffer)
 				if err != nil {
-					log.Errorf("%s: in -> out read data failed: %v", info, err)
+					log.Errorf("%s: read in fd data failed: %v", info, err)
 					return ErrSocketRead
 
 				}
-				log.Debugf("%s: in -> out read %d bytes data", info, cnt)
+				log.Debugf("%s: read in fd %d bytes data", info, cnt)
 
 				cnt, err = writer.Write(ioBuffer[:cnt])
 				if err != nil {
-					log.Errorf("%s: in -> out write data failed: %v", info, err)
+					log.Errorf("%s: write out fd  data failed: %v", info, err)
 					return ErrSocketWrite
 				}
-				log.Infof("%s: in -> out write %d bytes data", info, cnt)
+				log.Infof("%s: in -> write out fd %d bytes data", info, cnt)
 			}
 		}
 	})
@@ -114,19 +114,19 @@ func (n *SimpleNode) Forward(reader TrafficReadCloser, writer TrafficWriteCloser
 			case <-ctx.Done():
 				return ErrStopServer
 			default:
-				cnt, err := reader.Read(oiBuffer)
+				cnt, err := writer.Read(oiBuffer)
 				if err != nil {
-					log.Errorf("%s: out -> in read data failed: %v", info, err)
+					log.Errorf("%s: read out fd data failed: %v", info, err)
 					return ErrSocketRead
 				}
-				log.Infof("%s: in -> out read %d bytes data", info, cnt)
+				log.Infof("%s: read out fd %d bytes data", info, cnt)
 
-				cnt, err = writer.Write(oiBuffer[:cnt])
+				cnt, err = reader.Write(oiBuffer[:cnt])
 				if err != nil {
-					log.Errorf("%s: out -> in write data failed: %v", info, err)
+					log.Errorf("%s: write in fd failed: %v", info, err)
 					return ErrSocketWrite
 				}
-				log.Infof("%s: in -> out write %d bytes data", info, cnt)
+				log.Infof("%s: write in fd %d bytes data", info, cnt)
 			}
 		}
 	})
@@ -145,6 +145,6 @@ func (n *SimpleNode) Info() *NodeInfo {
 	}
 }
 
-func (n *SimpleNode) GetBestWriter() (TrafficWriteCloser, error) {
+func (n *SimpleNode) GetBestRW() (TrafficRW, error) {
 	return net.DialTimeout("tcp", n.addr, tcpDialTimeOut)
 }

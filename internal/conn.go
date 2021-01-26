@@ -6,12 +6,10 @@ import (
 	"net"
 )
 
-type TrafficReadCloser interface {
-	io.ReadCloser
-}
-
-type TrafficWriteCloser interface {
-	io.WriteCloser
+type TrafficRW interface {
+	io.Reader
+	io.Writer
+	io.Closer
 }
 
 // 入网连接
@@ -34,6 +32,10 @@ func (i *InTcpConn) Close() error {
 	return i.conn.Close()
 }
 
+func (i *InTcpConn) Write(p []byte) (n int, err error) {
+	return i.conn.Write(p)
+}
+
 // 出网连接
 type OutTcpConn struct {
 	conn *net.TCPConn
@@ -45,10 +47,14 @@ func NewOutTCPConn(out *net.TCPConn) *OutTcpConn {
 	}
 }
 
+func (o *OutTcpConn) Read(p []byte) (n int, err error) {
+	return o.conn.Read(p)
+}
+
 func (o *OutTcpConn) Write(p []byte) (n int, err error) {
-	return o.Write(p)
+	return o.conn.Write(p)
 }
 
 func (o *OutTcpConn) Close() error {
-	return o.Close()
+	return o.conn.Close()
 }
